@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuración WiFi</title>
+  <style>
+    :root {
+      --primary: #8a2be2;
+      --primary-light: #9b45f0;
+      --background: #121212;
+      --surface: #1e1e1e;
+      --on-surface: #e0e0e0;
+      --on-primary: #ffffff;
+      --error: #cf6679;
+      --info: #2196f3;
+      --success: #4caf50;
+      --border-radius: 12px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: var(--background);
+      color: var(--on-surface);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      background-image:
+        radial-gradient(circle at 15% 50%, rgba(138, 43, 226, 0.1) 0%, transparent 20%),
+        radial-gradient(circle at 85% 30%, rgba(138, 43, 226, 0.05) 0%, transparent 20%);
+    }
+
+    .container {
+      background-color: var(--surface);
+      width: 100%;
+      max-width: 480px;
+      border-radius: var(--border-radius);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      padding: 2.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 2rem;
+    }
+
+    .description {
+      text-align: center;
+      margin-bottom: 2rem;
+      color: #aaa;
+      line-height: 1.5;
+    }
+
+    .form-group {
+      margin-bottom: 1.8rem;
+      position: relative;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.7rem;
+      font-weight: 500;
+      color: var(--on-surface);
+      font-size: 1rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 16px;
+      border: 2px solid #333;
+      border-radius: var(--border-radius);
+      background-color: #2a2a2a;
+      color: var(--on-surface);
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.2);
+    }
+
+    input::placeholder {
+      color: #666;
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 16px;
+      top: 44px;
+      background: none;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      font-size: 1.2rem;
+      transition: color 0.2s;
+    }
+
+    .password-toggle:hover {
+      color: var(--on-surface);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: var(--on-primary);
+      border: none;
+      border-radius: var(--border-radius);
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 0.5rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(138, 43, 226, 0.3);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid transparent;
+      border-top: 2px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .status {
+      margin-top: 1.5rem;
+      padding: 16px;
+      border-radius: var(--border-radius);
+      text-align: center;
+      display: none;
+      font-weight: 500;
+    }
+
+    .success {
+      background-color: rgba(76, 175, 80, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      display: block;
+    }
+
+    .info {
+    background-color: rgba(33, 150, 243, 0.15);
+    color: var(--info);
+    border: 1px solid rgba(33, 150, 243, 0.3);
+    display: block;
+    }
+
+    .error {
+      background-color: rgba(207, 102, 121, 0.15);
+      color: var(--error);
+      border: 1px solid rgba(207, 102, 121, 0.3);
+      display: block;
+    }
+
+    .wifi-icon {
+      text-align: center;
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 1.8rem;
+      }
+
+      h1 {
+        font-size: 1.7rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="wifi-icon">📶</div>
+    <h1>Configuración WiFi</h1>
+    <p class="description">Ingresa los datos de tu red WiFi para conectar el dispositivo</p>
+
+    <form id="wifi-form">
+      <div class="form-group">
+        <label for="ssid">Nombre de red (SSID)</label>
+        <input type="text" id="ssid" name="ssid" placeholder="Ingresa el nombre de tu red WiFi" required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Contraseña</label>
+        <input type="password" id="password" name="password" placeholder="Ingresa la contraseña de la red">
+        <button type="button" class="password-toggle" id="togglePassword">👁️</button>
+      </div>
+
+      <button type="submit" class="btn" id="submit-btn">
+        <span>Guardar configuración</span>
+        <div class="spinner" id="spinner"></div>
+      </button>
+    </form>
+
+    <div id="status-message" class="status"></div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const form = document.getElementById('wifi-form');
+      const toggleButton = document.getElementById('togglePassword');
+      const passwordInput = document.getElementById('password');
+      const statusMessage = document.getElementById('status-message');
+      const submitBtn = document.getElementById('submit-btn');
+      const spinner = document.getElementById('spinner');
+
+      // Alternar visibilidad de contraseña
+      toggleButton.addEventListener('click', function () {
+        if (passwordInput.type === 'password') {
+          passwordInput.type = 'text';
+          toggleButton.textContent = '🔒';
+        } else {
+          passwordInput.type = 'password';
+          toggleButton.textContent = '👁️';
+        }
+      });
+
+      // Manejar envío del formulario
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const ssid = document.getElementById('ssid').value.trim();
+        const password = document.getElementById('password').value;
+
+        // Validación básica
+        if (!ssid) {
+          showStatus('Por favor ingresa el nombre de la red WiFi', 'error');
+          return;
+        }
+
+        toggleSpinnerAndButton(false);
+
+        try {
+          // Enviar configuración de forma asíncrona
+          const res = await postWifiConfig(ssid, password);
+
+          if (res.status === "received") {
+            showStatus(`Credenciales recibidas. Intentando conectar a "${ssid}"...`, 'info');
+
+            // Polling hasta obtener resultado final
+            let status;
+            do {
+              await new Promise(r => setTimeout(r, 2000)); // espera 2 segundos
+              status = await checkWifiStatus(); // hace GET /wifi-status
+            } while (status.status === "connecting");
+
+            if (status.status === "connected") {
+              showStatus(`¡Conexión exitosa!`, 'success');
+              submitBtn.disabled = true;
+              spinner.style.display = 'none';
+              submitBtn.querySelector('span').textContent = 'Configurado ✅';
+              // form.reset();
+            } else {
+              showStatus(`Error al conectar a la red "${ssid}"`, 'error');
+              toggleSpinnerAndButton(true);
+            }
+          } else {
+            showStatus(`Respuesta inesperada del servidor`, 'error');
+            toggleSpinnerAndButton(true);
+          }
+        } catch (error) {
+          console.error('Error:', error.message);
+          showStatus(`Error: ${error.message}`, 'error');
+        }
+      });
+
+      // Función para enviar configuración WiFi (similar a tu ejemplo)
+      async function postWifiConfig(ssid, password) {
+        // Simular un endpoint real - reemplaza "/wifi-config" con tu endpoint real
+
+        const payload = JSON.stringify({
+          "ssid": ssid,
+          "password": password
+        });
+
+        const response = await fetch("/set", {
+          method: "POST",
+          body: payload
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error del servidor: ${response.status}`);
+        }
+
+        // Simular un retraso de red para demostración
+        // await new Promise(resolve => setTimeout(resolve, 1500));
+
+        return await response.json();
+      }
+
+      async function checkWifiStatus() {
+        const response = await fetch("/wifi-status");
+        if (!response.ok) {
+          throw new Error(`Error al consultar estado: ${response.status}`);
+        }
+        return await response.json();
+      }
+
+      function toggleSpinnerAndButton(activate){
+        const submitBtn = document.getElementById('submit-btn');
+        const spinner = document.getElementById('spinner');
+
+        if(activate){
+          submitBtn.disabled = false;
+          spinner.style.display = 'none';
+          submitBtn.querySelector('span').textContent = 'Guardar configuración';
+        }else{
+          // Deshabilitar botón y mostrar spinner
+          submitBtn.disabled = true;
+          spinner.style.display = 'block';
+          submitBtn.querySelector('span').textContent = 'Configurando...';
+        }
+      }
+
+      // Función para mostrar mensajes de estado
+      function showStatus(message, type) {
+        statusMessage.textContent = message;
+        statusMessage.className = 'status ' + type;
+        statusMessage.style.display = 'block';
+
+        // Ocultar mensaje después de 5 segundos (excepto para errores)
+        if (type === 'success') {
+          setTimeout(() => {
+            statusMessage.style.display = 'none';
+          }, 5000);
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>
