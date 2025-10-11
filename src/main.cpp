@@ -7,10 +7,18 @@
 #include <DNSServer.h>
 #include <ArduinoJson.h>
 #include <Preferences.h>
+#include <Adafruit_NeoPixel.h>
+
+#include "screen.h"
+
+#define LED_PIN    1      // Pin donde está conectada la tira
+#define LED_COUNT  4      // Número de LEDs
 
 AsyncWebServer server(80);
 DNSServer dnsServer;
 Preferences prefs;
+
+Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 String wifi_ssid = "";
 String wifi_pass = "";
@@ -39,7 +47,12 @@ void WiFiEvent(WiFiEvent_t event) {
 }
 
 void setup() {
+
   Serial.begin(115200);
+
+  delay(10000);
+
+  Serial.println("Iniciando reloj minora");
 
   if (!SPIFFS.begin(true)) {
     Serial.println("Error montando SPIFFS");
@@ -141,8 +154,21 @@ void setup() {
 
   server.onNotFound(notFound);
   server.begin();
+
+  strip.begin();
+  strip.show();
+
+  draw_test1();
 }
 
 void loop() {
   dnsServer.processNextRequest();
+
+
+  for (int i = 0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, strip.Color(150, 150, 0));
+    strip.show();
+    delay(100);
+  }
+
 }
