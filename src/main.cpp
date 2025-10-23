@@ -10,9 +10,10 @@
 #include <Adafruit_NeoPixel.h>
 
 #include "screen.h"
+#include "hours.h"
 
 #define LED_PIN    1      // Pin donde está conectada la tira
-#define LED_COUNT  4      // Número de LEDs
+#define LED_COUNT  12      // Número de LEDs
 
 AsyncWebServer server(80);
 DNSServer dnsServer;
@@ -46,11 +47,31 @@ void WiFiEvent(WiFiEvent_t event) {
   }
 }
 
+
+void syncTimeFromNTP() {
+  const long gmtOffset_sec = -3 * 3600;   // Chile (GMT-3)
+  const int daylightOffset_sec = 0;       // Ajuste horario si aplica (1*3600 en verano)
+
+  configTime(gmtOffset_sec, daylightOffset_sec, "ntp.shoa.cl", "pool.ntp.org");
+
+  Serial.println("Sincronizando hora con NTP...");
+  struct tm timeinfo;
+  if (getLocalTime(&timeinfo)) {
+    Serial.printf("Hora sincronizada: %02d:%02d:%02d - %02d/%02d/%04d\n",
+      timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec,
+      timeinfo.tm_mday, timeinfo.tm_mon + 1, timeinfo.tm_year + 1900);
+  } else {
+    Serial.println("⚠️ No se pudo obtener la hora del servidor NTP");
+  }
+}
+
 void setup() {
 
   Serial.begin(115200);
 
-  delay(10000);
+  // delay(10000);
+
+  test_HT();
 
   Serial.println("Iniciando reloj minora");
 
@@ -159,16 +180,51 @@ void setup() {
   strip.show();
 
   draw_test1();
+
+  syncTimeFromNTP();
 }
+                    //  ABCDEFGH
+uint8_t digitos[13] = {B11111100, //0
+                       B01100001, //1
+                       B11011010, //2
+                       B11110010, //3
+                       B01100110, //4
+                       B10110110, //5
+                       B10111110, //6
+                       B11100000, //7
+                       B11111110, //8
+                       B11110110, //9
+                       B11101110, //A
+                       B00111110, //b
+                       B10011100, //C
+                       };
+
+
+void setDigit(int digit, uint8_t brillo, uint8_t brillo_1, uint8_t inicio){
+  int i = 8;
+  for (i = 0; i <= 7; i++){
+    strip.setPixelColor(inicio + i, ((digitos[digit] >> (7 - i)) & 1) ? strip.Color(brillo, brillo, brillo) : 0);
+  }
+  i++;
+  strip.setPixelColor(inicio + i, ((digitos[digit] >> (7 - i)) & 1) ? strip.Color(brillo_1, brillo_1, brillo_1) : 0);
+  strip.show();
+}
+
 
 void loop() {
   dnsServer.processNextRequest();
 
 
-  for (int i = 0; i < strip.numPixels(); i++) {
-    strip.setPixelColor(i, strip.Color(150, 150, 0));
+  for (int i = 0; i < 4; i++) {      //G  R  B
+    strip.setPixelColor(i, strip.Color(0, 15, 0));
     strip.show();
     delay(100);
+  }
+
+  for (int i = 0; i <= 13; i++) {
+    Serial.printf("-------Mostrando digito %d-------\n", i);
+    setDigit(i, 200, 205, 4);
+    delay(1000);
   }
 
 }
