@@ -7,15 +7,16 @@
 #include "screen.h"
 #include "graphics.h"
 
+//Agregar soporte para inglés
+const char* str_days[7]   = {"dom", "lun", "mar", "mie", "jue", "vie", "sab"};
+const char* str_months[12] = {"ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"};
+
 const int EINK_BUSY = 6;
 const int EINK_RST = 7;
 const int EINK_DC = 9;
 const int EINK_CS = SS;     // 20
 const int EINK_SCK = SCK;   // 8
 const int EINK_MOSI = MOSI; // 10
-
-// GxEPD2_BW<GxEPD2_290_T94, GxEPD2_290_T94::HEIGHT>
-// display(GxEPD2_290_T94(EINK_CS, EINK_DC, EINK_RST, EINK_BUSY)); // GDEM029E97 128x296, SSD1675A (SSD1680)
 
 GxEPD2_BW<GxEPD2_290_E97, GxEPD2_290_E97::HEIGHT>
 display(GxEPD2_290_E97(EINK_CS, EINK_DC, EINK_RST, EINK_BUSY)); // GDEM029E97 128x296, SSD1675A (SSD1680)
@@ -45,10 +46,17 @@ void draw_test1(void) {
   // display.setCursor(50, 12);
   // display.print("vie 10 oct 2025");
 
+  struct tm now;
+  if (getLocalTime(&now)) {
+    char buffer[30];
+    strftime(buffer, sizeof(buffer), "%H:%M:%S %d/%m/%Y", &now);
+    Serial.println(buffer);
+  }
+  
   display.setTextSize(1);
   display.setFont(&FreeMonoBold12pt7b);
   display.setCursor(50, 20);
-  display.print("vie 10 oct 2025");
+  display.printf("%s %d %s %d", str_days[now.tm_wday], now.tm_mday, str_months[now.tm_mon], now.tm_year + 1900);
   display.setCursor(65, 79);
   display.print("Ahora");
 
