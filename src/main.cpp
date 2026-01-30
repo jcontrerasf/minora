@@ -12,7 +12,7 @@
 #include "screen.h"
 
 #define LED_PIN    1      // Pin donde está conectada la tira
-#define LED_COUNT  20      // Número de LEDs
+#define LED_COUNT  16+60      // Número de LEDs
 
 AsyncWebServer server(80);
 DNSServer dnsServer;
@@ -209,7 +209,7 @@ uint8_t digitos[10] = {B11100111, //0
 
 void setDigit(int digit, uint8_t brillo, uint8_t brillo_1, uint8_t inicio){
   uint8_t br;
-  for (int i = 0; i <= 8; i++){
+  for (int i = 0; i < 8; i++){
     if(i == 4){ //corresponde al segmento H, que tiene un LED más que los otros segmentos
       br = brillo_1;
     }else{
@@ -217,25 +217,32 @@ void setDigit(int digit, uint8_t brillo, uint8_t brillo_1, uint8_t inicio){
     }
     strip.setPixelColor(inicio + i, ((digitos[digit] >> (7 - i)) & 1) ? strip.Color(br, br, br) : 0);
   }
-  strip.show();
+  // strip.show();
 }
 
 
 void loop() {
   dnsServer.processNextRequest();
 
-
-  for (int i = 0; i < 4; i++) {      //G  R  B
-    strip.setPixelColor(i, strip.Color(0, 15, 0));
-    strip.show();
-    delay(100);
-  }
-
-  for (int i = 0; i <= 99; i++) {
+  for (int i = 0; i < 60; i++) {
     Serial.printf("-------Mostrando digito %d-------\n", i);
-    setDigit(i%10, 200, 205, 4);
-    setDigit(i/10, 200, 205, 4+8);
+    setDigit(i%10, 200, 205, 0);
+    setDigit(i/10, 200, 205, 8);
+
+    if(i % 15 == 0){
+      strip.setPixelColor(i+16, strip.Color(0, 0, 5));
+    }else if(i % 5 == 0){
+      strip.setPixelColor(i+16, strip.Color(5, 0, 5));
+    }else{
+      strip.setPixelColor(i+16, strip.Color(0, 10, 0));
+    }
+    strip.show();
     delay(1000);
   }
+
+  for (int i = 16; i < LED_COUNT; i++) {      //G  R  B
+    strip.setPixelColor(i, strip.Color(0, 0, 0));
+  }
+  strip.show();
 
 }
