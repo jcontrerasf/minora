@@ -1,34 +1,22 @@
 #include <Arduino.h>
 #include <WiFi.h>
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
-#include <ESPmDNS.h>
 #include <SPIFFS.h>
-#include <DNSServer.h>
-#include <ArduinoJson.h>
-#include <Preferences.h>
 #include <Adafruit_NeoPixel.h>
 
 #include "screen.h"
+#include "webapp.h"
 
 #define LED_PIN    1      // Pin donde está conectada la tira
 #define LED_COUNT  16+60      // Número de LEDs
 
-AsyncWebServer server(80);
-DNSServer dnsServer;
-Preferences prefs;
 
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
-String wifi_ssid = "";
-String wifi_pass = "";
-bool wifi_connecting = false;
-bool wifi_connected = false;
-unsigned long wifi_connect_start = 0;
+bool got_ip = false;
 
-void notFound(AsyncWebServerRequest* request) {
-  request->send(404, "text/plain", "Not found");
-}
+EventGroupHandle_t wifi_event_group;
+#define WIFI_GOT_IP_BIT BIT0
+
 
 void WiFiEvent(WiFiEvent_t event) {
   switch (event) {
@@ -42,6 +30,8 @@ void WiFiEvent(WiFiEvent_t event) {
   case SYSTEM_EVENT_STA_GOT_IP:
     Serial.print("IP: ");
     Serial.println(WiFi.localIP());
+    got_ip = true;
+    xEventGroupSetBits(wifi_event_group, WIFI_GOT_IP_BIT);
     break;
   }
 }
@@ -64,135 +54,6 @@ void syncTimeFromNTP() {
   }
 }
 
-void setup() {
-
-  Serial.begin(115200);
-
-  // delay(10000);
-
-  Serial.println("Iniciando reloj minora");
-
-  if (!SPIFFS.begin(true)) {
-    Serial.println("Error montando SPIFFS");
-    return;
-  }
-
-  prefs.begin("wifi", true);
-  String saved_ssid = prefs.getString("ssid", "");
-  String saved_pass = prefs.getString("pass", "");
-  prefs.end();
-
-  if (saved_ssid != "") {
-    WiFi.mode(WIFI_STA);
-    Serial.printf("Conectando a red guardada: %s\n", saved_ssid.c_str());
-    WiFi.begin(saved_ssid.c_str(), saved_pass.c_str());
-    //Si falla n veces, iniciar AP
-  } else {
-    WiFi.mode(WIFI_AP_STA);
-    Serial.println("No hay credenciales guardadas, iniciando AP");
-    WiFi.softAP("minora");
-  }
-
-  IPAddress apIP(192,168,4,1);
-  WiFi.softAPConfig(apIP, apIP, IPAddress(255,255,255,0));
-  dnsServer.start(53, "*", apIP);
-
-  // WiFi.onEvent(WiFiEvent);
-  // if (WiFi.waitForConnectResult() != WL_CONNECTED) {
-  //   Serial.println("WiFi Failed!");
-  //   return;
-  // }
-  // Serial.println();
-  // Serial.print("IP Address: ");
-  // Serial.println(WiFi.localIP());
-
-  if (!MDNS.begin("minora")) {
-    Serial.println("Error iniciando mDNS");
-  }
-  Serial.println("mDNS iniciado");
-
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
-    request->send(SPIFFS, "/creds.html", "text/html");
-  });
-
-  server.on("/set", HTTP_POST, [](AsyncWebServerRequest *request){}, NULL,
-    [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
-
-      JsonDocument doc;
-      DeserializationError err = deserializeJson(doc, data);
-      if (err) {
-        request->send(400, "application/json", "{\"status\":\"error\",\"msg\":\"JSON invalido\"}");
-        return;
-      }
-
-      wifi_ssid = doc["ssid"].as<String>();
-      wifi_pass = doc["password"].as<String>();
-
-      Serial.printf("Recibido SSID: %s, PASS: %s\n", wifi_ssid.c_str(), wifi_pass.c_str());
-
-      // Iniciar intento de conexión
-      WiFi.begin(wifi_ssid.c_str(), wifi_pass.c_str());
-      wifi_connecting = true;
-      wifi_connected = false;
-      wifi_connect_start = millis();
-
-      request->send(200, "application/json", "{\"status\":\"received\"}");
-  });
-
-  server.on("/wifi-status", HTTP_GET, [](AsyncWebServerRequest *request) {
-    JsonDocument doc;
-
-    if (wifi_connecting) {
-      wl_status_t status = WiFi.status();
-
-      if (status == WL_CONNECTED) {
-        prefs.begin("wifi", false);
-        prefs.putString("ssid", wifi_ssid);
-        prefs.putString("pass", wifi_pass);
-        prefs.end();
-        wifi_connecting = false;
-        wifi_connected = true;
-        doc["status"] = "connected";
-        doc["ip"] = WiFi.localIP().toString();
-      } else if (millis() - wifi_connect_start > 15000) { // timeout
-        wifi_connecting = false;
-        wifi_connected = false;
-        doc["status"] = "failed";
-      } else {
-        doc["status"] = "connecting";
-      }
-    } else {
-      doc["status"] = wifi_connected ? "connected" : "idle";
-    }
-
-    String json;
-    serializeJson(doc, json);
-    request->send(200, "application/json", json);
-  });
-
-  server.onNotFound(notFound);
-  server.begin();
-
-  strip.begin();
-  strip.show();
-
-  syncTimeFromNTP();
-
-  draw_test1();
-}
-                    //  ABCDEFGH
-// uint8_t digitos[10] = {B11111100, //0
-//                        B01100001, //1
-//                        B11011010, //2
-//                        B11110010, //3
-//                        B01100110, //4
-//                        B10110110, //5
-//                        B10111110, //6
-//                        B11100000, //7
-//                        B11111110, //8
-//                        B11110110, //9
-//                        };
-
                   //    ABFGHCDE
 uint8_t digitos[10] = {B11100111, //0
                        B01001100, //1
@@ -205,7 +66,6 @@ uint8_t digitos[10] = {B11100111, //0
                        B11110111, //8
                        B11110110, //9
                        };
-
 
 void setDigit(int digit, uint8_t brillo, uint8_t brillo_1, uint8_t inicio){
   uint8_t br;
@@ -220,11 +80,12 @@ void setDigit(int digit, uint8_t brillo, uint8_t brillo_1, uint8_t inicio){
   // strip.show();
 }
 
-
-void loop() {
-  dnsServer.processNextRequest();
-
-  for (int i = 0; i < 60; i++) {
+TaskHandle_t LEDS_handle = NULL;
+void task_leds(void *params){
+  strip.begin();
+  strip.show();
+  while(1){
+    for (int i = 0; i < 60; i++) {
     Serial.printf("-------Mostrando digito %d-------\n", i);
     setDigit(i%10, 200, 205, 0);
     setDigit(i/10, 200, 205, 8);
@@ -244,5 +105,51 @@ void loop() {
     strip.setPixelColor(i, strip.Color(0, 0, 0));
   }
   strip.show();
+  }
+}
+
+TaskHandle_t screen_handle = NULL;
+void task_screen(void *params){
+  draw_test1();
+  vTaskDelete(NULL);
+}
+
+void setup() {
+
+  Serial.begin(115200);
+  wifi_event_group = xEventGroupCreate();
+  WiFi.onEvent(WiFiEvent);
+
+  delay(10000);
+
+  Serial.println("Iniciando reloj minora");
+  ESP_LOGI("setup", "prueba");
+
+  if (!SPIFFS.begin(true)) {
+    Serial.println("Error montando SPIFFS");
+    return;
+  }
+
+  xTaskCreate(task_leds, "LEDS", configMINIMAL_STACK_SIZE*4, NULL, 2, &LEDS_handle);
+  xTaskCreate(task_screen, "Screen", configMINIMAL_STACK_SIZE*4, NULL, 3, &screen_handle);
+
+  webapp_check_creds();
+
+  webapp_init();
+
+  xEventGroupWaitBits(
+    wifi_event_group,
+    WIFI_GOT_IP_BIT,
+    pdFALSE,
+    pdTRUE,
+    portMAX_DELAY
+  );
+  Serial.println("Tiene IP");
+  syncTimeFromNTP();
+}
+
+
+void loop() {
+  // dnsServer.processNextRequest();
 
 }
