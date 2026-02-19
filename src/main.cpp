@@ -1,16 +1,11 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <SPIFFS.h>
-#include <Adafruit_NeoPixel.h>
 
 #include "screen.h"
 #include "webapp.h"
+#include "agujas.h"
 
-#define LED_PIN    1      // Pin donde está conectada la tira
-#define LED_COUNT  16+60      // Número de LEDs
-
-
-Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 bool got_ip = false;
 
@@ -54,59 +49,7 @@ void syncTimeFromNTP() {
   }
 }
 
-                  //    ABFGHCDE
-uint8_t digitos[10] = {B11100111, //0
-                       B01001100, //1
-                       B11010011, //2
-                       B11010110, //3
-                       B01110100, //4
-                       B10110110, //5
-                       B10110111, //6
-                       B11000100, //7
-                       B11110111, //8
-                       B11110110, //9
-                       };
 
-void setDigit(int digit, uint8_t brillo, uint8_t brillo_1, uint8_t inicio){
-  uint8_t br;
-  for (int i = 0; i < 8; i++){
-    if(i == 4){ //corresponde al segmento H, que tiene un LED más que los otros segmentos
-      br = brillo_1;
-    }else{
-      br = brillo;
-    }
-    strip.setPixelColor(inicio + i, ((digitos[digit] >> (7 - i)) & 1) ? strip.Color(br, br, br) : 0);
-  }
-  // strip.show();
-}
-
-TaskHandle_t LEDS_handle = NULL;
-void task_leds(void *params){
-  strip.begin();
-  strip.show();
-  while(1){
-    for (int i = 0; i < 60; i++) {
-    Serial.printf("-------Mostrando digito %d-------\n", i);
-    setDigit(i%10, 200, 205, 0);
-    setDigit(i/10, 200, 205, 8);
-
-    if(i % 15 == 0){
-      strip.setPixelColor(i+16, strip.Color(0, 0, 5));
-    }else if(i % 5 == 0){
-      strip.setPixelColor(i+16, strip.Color(5, 0, 5));
-    }else{
-      strip.setPixelColor(i+16, strip.Color(0, 10, 0));
-    }
-    strip.show();
-    delay(1000);
-  }
-
-  for (int i = 16; i < LED_COUNT; i++) {      //G  R  B
-    strip.setPixelColor(i, strip.Color(0, 0, 0));
-  }
-  strip.show();
-  }
-}
 
 TaskHandle_t screen_handle = NULL;
 void task_screen(void *params){
@@ -144,7 +87,7 @@ void setup() {
     pdTRUE,
     portMAX_DELAY
   );
-  Serial.println("Tiene IP");
+
   syncTimeFromNTP();
 }
 
