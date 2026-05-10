@@ -33,7 +33,7 @@ void WiFiEvent(WiFiEvent_t event) {
 
 
 void syncTimeFromNTP() {
-  const long gmtOffset_sec = -3 * 3600;   // Chile (GMT-3)
+  const long gmtOffset_sec = -4 * 3600;   // Chile (GMT-3)
   const int daylightOffset_sec = 0;       // Ajuste horario si aplica (1*3600 en verano)
 
   configTime(gmtOffset_sec, daylightOffset_sec, "ntp.shoa.cl", "pool.ntp.org");

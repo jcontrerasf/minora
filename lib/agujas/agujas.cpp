@@ -41,18 +41,19 @@ void clear_minutes(void){
   // strip.show();
 }
 
-void show(int hour, int minute, bool modo){
+void show(int hour, int minute, int second, bool modo){
 
   static int last_hour = -1;
   static int last_minute = -1;
+  static int last_second = -1;
 
-  Serial.printf("Mostrando hora %02d:%02d\n", hour, minute);
+  Serial.printf("Mostrando hora %02d:%02d:%02d\n", hour, minute, second);
 
-  if(last_minute == minute){
+  if(last_second == second){
     return;
   }
 
-  last_minute = minute;
+  last_second = second;
 
   if(last_hour != hour){
     last_hour = hour;
@@ -60,22 +61,52 @@ void show(int hour, int minute, bool modo){
     setDigit(hour/10, 200, 205, 8);
   }
 
-  if(minute == 0){
+  if(minute == 0 && second == 0){
     clear_minutes();
     strip.setPixelColor(0 + MINUTE_START_IDX, strip.Color(0, 0, 5));
     strip.show();
     return;
   }
 
-  for(int i = 1; i <= minute; i++){
-    if(i % 15 == 0){
-      strip.setPixelColor(i + MINUTE_START_IDX, strip.Color(0, 0, 5));
-    }else if(i % 5 == 0){
-      strip.setPixelColor(i + MINUTE_START_IDX, strip.Color(5, 0, 5));
+  for(int i = 0; i < 60; i++){
+    bool drawMinute = (i <= minute) && (modo || i == minute);
+    bool drawSecond = (i == second);
+    uint32_t color;
+
+    if(drawMinute && i > 0){
+      if(i % 15 == 0){
+        color = strip.Color(0, 0, 5);
+      }else if(i % 5 == 0){
+        color = strip.Color(5, 0, 5);
+      }else{
+        color = strip.Color(0, 7, 0);
+      }
     }else{
-      strip.setPixelColor(i + MINUTE_START_IDX, strip.Color(0, 10, 0));
+      color = strip.Color(0, 0, 0);
     }
+
+    if(drawSecond){
+      if(drawMinute){ //segundos y minutos juntos
+        if(i % 15 == 0){
+        color = strip.Color(0, 0, 10);
+      }else if(i % 5 == 0){
+        color = strip.Color(10, 0, 10);
+      }else{
+        color = strip.Color(0, 20, 0);
+      }
+      }else{ // solo segundos
+        if(i % 5 == 0){
+          color = strip.Color(0, 0, 5);
+        }else{
+          color = strip.Color(0, 5, 0);
+        }
+      }
+    }
+
+    strip.setPixelColor(i + MINUTE_START_IDX, color);
+
   }
+
     strip.show();
 }
 
@@ -105,11 +136,16 @@ void test_sequence(void){
 void task_leds(void *params){
   strip.begin();
   strip.show();
+
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+  const TickType_t xFrequency = pdMS_TO_TICKS(1000);
+
   while(1){
+    vTaskDelayUntil(&xLastWakeTime, xFrequency);
+
     struct tm now;
     if (getLocalTime(&now)) {
-      show(now.tm_hour, now.tm_min, false);
+      show(now.tm_hour, now.tm_min, now.tm_sec, true);
     }
-    delay(1000);
   }
 }
